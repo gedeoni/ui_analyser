@@ -1,0 +1,9 @@
+langgraph
+langgraph-checkpoint-sqlite
+litellm
+pydantic
+pydantic-settings
+playwright
+streamlit
+python-dotenv
+google-genai
