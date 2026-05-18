@@ -5,9 +5,11 @@ Wraps LiteLLM's ``completion`` API with automatic model selection
 """
 
 import base64
+import io
 import logging
 from typing import Any, Optional, Type, TypeVar
 
+from PIL import Image
 from pydantic import BaseModel
 
 from litellm import completion
@@ -22,6 +24,33 @@ def encode_image_to_base64(image_path: str) -> str:
     """Read an image file and return its Base64-encoded string."""
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
+
+
+def _downscale_image(image_path: str, max_dim: int) -> str:
+    """Downscale *image_path* so its longest side ≤ *max_dim*.
+
+    Returns a base64-encoded JPEG string (much smaller than raw PNG).
+    If the image is already within limits, it is still re-encoded as
+    JPEG for consistent compression.
+    """
+    with Image.open(image_path) as img:
+        width, height = img.size
+        if max(width, height) > max_dim:
+            ratio = max_dim / max(width, height)
+            new_size = (int(width * ratio), int(height * ratio))
+            img = img.resize(new_size, Image.LANCZOS)
+            logger.info(
+                "Downscaled image from %dx%d → %dx%d",
+                width, height, new_size[0], new_size[1],
+            )
+
+        # Convert to RGB (in case of RGBA PNGs) and encode as JPEG
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=80)
+        return base64.b64encode(buf.getvalue()).decode("utf-8")
 
 
 def call_llm(
@@ -48,14 +77,15 @@ def call_llm(
         kwargs: dict[str, Any] = {
             "model": selected_model,
             "messages": messages,
+            "timeout": settings.LLM_TIMEOUT_SECONDS,
         }
 
         if response_format:
             kwargs["response_format"] = response_format
 
         logger.info(
-            "Calling LLM (%s) with prompt length: %d",
-            selected_model, len(prompt),
+            "Calling LLM (%s) — prompt: %d chars, timeout: %ds",
+            selected_model, len(prompt), settings.LLM_TIMEOUT_SECONDS,
         )
         response = completion(**kwargs)
 
@@ -93,11 +123,12 @@ def _build_messages(
 def _build_vision_message(
     prompt: str, image_path: str,
 ) -> dict[str, Any]:
-    """Create a multimodal user message with text + base64 image."""
-    base64_image = encode_image_to_base64(image_path)
-    mime_type = (
-        "image/png" if image_path.endswith(".png") else "image/jpeg"
+    """Create a multimodal user message with text + downscaled image."""
+    base64_image = _downscale_image(
+        image_path, settings.MAX_IMAGE_DIMENSION,
     )
+    # Always JPEG after downscale
+    mime_type = "image/jpeg"
 
     content = [
         {"type": "text", "text": prompt},

@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     # UI Configuration
     PLAYWRIGHT_TIMEOUT_MS: int = 60000
 
+    # LLM call settings
+    LLM_TIMEOUT_SECONDS: int = 900  # generous timeout for local vision models
+    MAX_IMAGE_DIMENSION: int = 1280  # downscale screenshots before sending to LLM
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
