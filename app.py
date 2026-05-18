@@ -3,7 +3,18 @@ import os
 import uuid
 import asyncio
 import re
-from src.workflows.graph import app as agent_graph
+import logging
+
+# Configure logging format and piping to stdout
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%H:%M:%S"
+)
+logger = logging.getLogger(__name__)
+
+from src.workflows.graph import workflow as agent_workflow
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from src.state.schema import GraphState
 from src.config.settings import settings
 from src.utils.system_checks import is_ollama_installed, get_ollama_models
@@ -101,8 +112,30 @@ def render_model_settings():
             help="Only models with vision capabilities are shown.",
         )
         settings.VISION_MODEL = f"ollama/{selected}"
-        settings.TEXT_MODEL = f"ollama/{selected}"
-        st.sidebar.info(f"Using **{selected}** locally via Ollama.")
+        
+        # Text model selector — all local models, defaulting to a lighter one
+        all_local_models = get_ollama_models(only_vision=False)
+        if all_local_models:
+            default_text = "llama3.2:latest"
+            text_idx = (
+                all_local_models.index(default_text) 
+                if default_text in all_local_models 
+                else 0
+            )
+            selected_text = st.sidebar.selectbox(
+                "Select Local Text Model",
+                options=all_local_models,
+                index=text_idx,
+                help="Faster text-only model used for routing, strategy, and prompt generation.",
+            )
+            settings.TEXT_MODEL = f"ollama/{selected_text}"
+        else:
+            settings.TEXT_MODEL = f"ollama/{selected}"
+        
+        st.sidebar.info(
+            f"🔭 Vision: **{selected}**\n\n"
+            f"💬 Text: **{settings.TEXT_MODEL.replace('ollama/', '')}**"
+        )
 
 
 # ── Render Sidebar ──────────────────────────────────────────
@@ -140,22 +173,27 @@ def extract_url(text):
 user_input = st.chat_input("Provide a website URL to analyse")
 
 async def run_agent(state_input, config):
-    # We use stream to get step-by-step updates
-    async for event in agent_graph.astream(state_input, config=config):
-        for node, state in event.items():
-            if "messages" in state and len(state["messages"]) > 0:
-                last_msg = state["messages"][-1]
-                if last_msg["role"] == "assistant":
-                    with st.chat_message("assistant"):
-                        st.write(last_msg["content"])
-                        st.session_state.messages.append({"role": "assistant", "content": last_msg["content"]})
-                        
-            # If a new image was generated, display it
-            if "current_image_path" in state and state["current_image_path"]:
-                img_path = state["current_image_path"]
-                if os.path.exists(img_path):
-                    st.image(img_path, caption="Current Design")
-                    st.session_state.messages.append({"role": "assistant", "content": "Updated design.", "image": img_path})
+    # Setup SQLite persistence dynamically inside the async function
+    async with AsyncSqliteSaver.from_conn_string("data/checkpoints.sqlite") as memory:
+        # Compile the workflow with the async checkpointer
+        agent_graph = agent_workflow.compile(checkpointer=memory)
+        
+        # We use stream to get step-by-step updates
+        async for event in agent_graph.astream(state_input, config=config):
+            for node, state in event.items():
+                if "messages" in state and len(state["messages"]) > 0:
+                    last_msg = state["messages"][-1]
+                    if last_msg["role"] == "assistant":
+                        with st.chat_message("assistant"):
+                            st.write(last_msg["content"])
+                            st.session_state.messages.append({"role": "assistant", "content": last_msg["content"]})
+                            
+                # If a new image was generated, display it
+                if "current_image_path" in state and state["current_image_path"]:
+                    img_path = state["current_image_path"]
+                    if os.path.exists(img_path):
+                        st.image(img_path, caption="Current Design")
+                        st.session_state.messages.append({"role": "assistant", "content": "Updated design.", "image": img_path})
 
 if user_input:
     # Check that we have a valid configuration before proceeding

@@ -1,6 +1,10 @@
 from langgraph.graph import StateGraph, START, END
 import os
+import logging
 
+logger = logging.getLogger(__name__)
+
+from src.config.settings import settings
 from src.state.schema import GraphState
 from src.agents.nodes import (
     route_request,
@@ -30,20 +34,18 @@ def build_graph():
 
     # Conditional routing logic from the router
     def router_condition(state: GraphState) -> str:
-        # The router node sets the next node in its output (we can access it if we return it in the state, 
-        # but LangGraph allows nodes to return dicts that update state. Wait, the router returns {"next_node": ...} 
-        # but next_node isn't in our GraphState schema unless we add it, or we can use the last system message.
-        # Let's adjust this: the router can just return the route string directly if we use it as a conditional edge,
-        # but since route_request updates state, we need to inspect the state.
-        
-        # Let's parse the last system message which contains "Routed to: X"
         last_msg = state["messages"][-1]["content"]
+        logger.info(f"Evaluating router condition from message: {repr(last_msg)}")
         if "capture_website" in last_msg:
+            logger.info("Routing -> capture_website node")
             return "capture_website"
         elif "analysis_pipeline" in last_msg:
+            logger.info("Routing -> ui_critic (analysis_pipeline) node")
             return "ui_critic"
         elif "design_editor" in last_msg:
+            logger.info("Routing -> design_editor node")
             return "design_editor"
+        logger.info("Routing -> info_agent node")
         return "info_agent"
 
     workflow.add_conditional_edges(
@@ -62,7 +64,30 @@ def build_graph():
 
     # Analysis pipeline is sequential
     workflow.add_edge("ui_critic", "design_strategist")
-    workflow.add_edge("design_strategist", "visual_implementer")
+
+    # Conditional edge: only proceed to visual_implementer if image gen API keys exist
+    def can_generate_image(state: GraphState) -> str:
+        has_key = any([
+            os.getenv("GEMINI_API_KEY"),
+            os.getenv("OPENAI_API_KEY"),
+            settings.GEMINI_API_KEY,
+            settings.OPENAI_API_KEY,
+        ])
+        if has_key:
+            logger.info("✅ Image generation API key found — proceeding to visual_implementer")
+            return "visual_implementer"
+        else:
+            logger.warning("⚠️ No image generation API key — stopping at design_strategist")
+            return "end"
+
+    workflow.add_conditional_edges(
+        "design_strategist",
+        can_generate_image,
+        {
+            "visual_implementer": "visual_implementer",
+            "end": END
+        }
+    )
     
     # End points
     workflow.add_edge("visual_implementer", END)

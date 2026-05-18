@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     # Defaults target local Ollama models.  The app sidebar can override these
     # at runtime, or they can be set in .env / environment variables.
     VISION_MODEL: str = "ollama/llama3.2-vision:latest"
-    TEXT_MODEL: str = "ollama/llama3.2-vision:latest"
+    TEXT_MODEL: str = "ollama/llama3.2:latest"
     IMAGE_GENERATION_MODEL: str = "gemini-2.5-flash-image"  # Cloud-only — no local equivalent
 
     # Cloud model defaults (used when USE_CLOUD is True)

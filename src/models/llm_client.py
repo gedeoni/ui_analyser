@@ -24,7 +24,10 @@ def call_llm(
     Calls the LLM using LiteLLM.
     Handles text, vision (if image_path provided), and structured outputs.
     """
-    selected_model = model or (settings.get_active_vision_model())
+    selected_model = model or (
+        settings.get_active_vision_model() if image_path 
+        else settings.get_active_text_model()
+    )
     
     messages = []
     
