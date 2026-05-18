@@ -1,5 +1,7 @@
-import os
+"""Application-wide configuration settings backed by pydantic-settings."""
+
 from typing import Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
