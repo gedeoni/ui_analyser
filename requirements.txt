@@ -8,3 +8,4 @@ playwright
 streamlit
 python-dotenv
 google-genai
+Pillow
