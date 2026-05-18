@@ -1,6 +1,4 @@
 from langgraph.graph import StateGraph, START, END
-from langgraph.checkpoint.sqlite import SqliteSaver
-import sqlite3
 import os
 
 from src.state.schema import GraphState
@@ -71,16 +69,7 @@ def build_graph():
     workflow.add_edge("design_editor", END)
     workflow.add_edge("info_agent", END)
 
-    # Setup SQLite persistence
-    os.makedirs("data", exist_ok=True)
-    # Using sqlite3 directly as recommended for SqliteSaver in langgraph
-    conn = sqlite3.connect("data/checkpoints.sqlite", check_same_thread=False)
-    memory = SqliteSaver(conn)
+    return workflow
 
-    # Compile the graph
-    app = workflow.compile(checkpointer=memory)
-    
-    return app
-
-# Expose a compiled instance
-app = build_graph()
+# Expose the workflow builder
+workflow = build_graph()

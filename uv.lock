@@ -2487,6 +2487,7 @@ name = "ui-analyser"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "aiosqlite" },
     { name = "google-genai" },
     { name = "langgraph" },
     { name = "langgraph-checkpoint-sqlite" },
@@ -2501,6 +2502,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aiosqlite", specifier = ">=0.20.0" },
     { name = "google-genai", specifier = ">=2.4.0" },
     { name = "langgraph", specifier = ">=1.2.0" },
     { name = "langgraph-checkpoint-sqlite", specifier = ">=3.1.0" },

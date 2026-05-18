@@ -1,5 +1,6 @@
 langgraph
 langgraph-checkpoint-sqlite
+aiosqlite
 litellm
 pydantic
 pydantic-settings

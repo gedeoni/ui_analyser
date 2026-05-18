@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aiosqlite>=0.20.0",
     "google-genai>=2.4.0",
     "langgraph>=1.2.0",
     "langgraph-checkpoint-sqlite>=3.1.0",
