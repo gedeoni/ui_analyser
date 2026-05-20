@@ -108,7 +108,17 @@ GEMINI_API_KEY="your_gemini_api_key_here"
 > **Note**: Without a cloud API key, the pipeline will still run the full analysis and strategy — only the visual redesign generation step is skipped.
 
 ### 5. Run the Streamlit Interface
-```bash
+```bash 
+*using uv*
+-------------
+uv sync 
+source .venv/bin/activate 
+streamlit run app.py
+
+*using venv*
+-------------
+python -m venv .venv
+source .venv/bin/activate 
 streamlit run app.py
 ```
 
