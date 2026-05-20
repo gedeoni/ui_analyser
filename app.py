@@ -240,6 +240,14 @@ async def run_agent(
         ):
             _handle_stream_event(event)
 
+        # Retrieve final state and log all messages
+        final_state = await agent_graph.aget_state(run_config)
+        final_messages = final_state.values.get("messages", [])
+        logger.info("--- GRAPH COMPLETED — ALL MESSAGES ---")
+        for idx, msg in enumerate(final_messages):
+            logger.info("Message %d: [%s] %r", idx, msg.get("role"), msg.get("content"))
+        logger.info("---------------------------------------")
+
 
 def _handle_stream_event(event: dict) -> None:
     """Process a single streamed event from the agent graph."""

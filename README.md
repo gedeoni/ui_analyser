@@ -5,14 +5,16 @@ A sophisticated multi-agent system built with **LangGraph**, **LiteLLM**, and **
 ## Features
 
 - **🌐 Website URL Support**: Simply provide a website URL, and the agent uses Playwright to capture a full-page screenshot for analysis.
+- **🖼️ Direct Image Upload Support**: Drag-and-drop or select mockup image files (`png`, `jpg`, `jpeg`) to perform immediate UI/UX analysis on your wireframes or offline designs, completely bypassing Playwright screenshot capture.
 - **👁️ Visual AI Analysis**: Agents automatically analyze layout, typography, colors, and UX patterns from screenshots.
 - **🎯 Expert Feedback**: Comprehensive critique covering visual hierarchy, accessibility, conversion optimization, and design best practices.
 - **✨ Automatic Improvements**: Generates improved landing page designs incorporating all recommendations (requires cloud API key).
 - **🤖 Multi-Agent Orchestration**: Built on LangGraph with explicit routing, state management, and clear multi-agent pipelines.
 - **🔌 Hybrid Model Support**: Run entirely locally with Ollama, or use cloud APIs (Gemini, OpenAI, Anthropic). The system intelligently splits workloads between a fast text model and a vision model.
 - **💾 Memory Persistence**: Uses SQLite checkpointing for maintaining conversation and design history across sessions.
-- **📊 Comprehensive Logging**: Every node logs its actions with clear visual markers for easy debugging and monitoring.
-- **🖼️ Smart Image Handling**: Screenshots are automatically downscaled and compressed (JPEG) before sending to the LLM, preventing timeouts with local vision models.
+- **📊 Comprehensive Logging**: Every node logs its actions with clear visual markers, and the final state is captured to print a detailed, end-to-end transcript of all accumulated messages when the graph reaches the `END` state.
+- **🖼️ Built-in Image Minimization**: Direct image uploads and web screenshots are run immediately through an `image_optimizer` utility. It downscales the longest side to `settings.MAX_IMAGE_DIMENSION` (default 1280px), flattens transparency/alpha channels onto a solid white background, and saves it in a highly optimized JPEG format, saving network payloads and accelerating vision LLM processing.
+- **🗑️ Sleek Sidebar Session Reset**: Includes a one-click session-clearing button in the sidebar that wipes conversation states and refreshes the thread ID, allowing you to run new audits instantly.
 
 ## Architecture
 
@@ -21,10 +23,11 @@ graph TD
     User([User Input]) --> Router
     Router --> |General Query| InfoAgent
     Router --> |Website URL| WebCapture
+    Router --> |Direct Image Upload| UICritic
     Router --> |New Image / Analysis| UICritic
     Router --> |Edit Request| DesignEditor
     
-    WebCapture --> |Screenshot captured| UICritic
+    WebCapture --> |Screenshot captured & minimized| UICritic
     
     subgraph Analysis Pipeline
         UICritic --> |Analysis Report| DesignStrategist
@@ -41,9 +44,9 @@ graph TD
 
 The system uses a **StateGraph (Supervisor/Worker pattern)** with specialized agents:
 
-1. **Router Agent (Supervisor)**: Determines if the request requires URL capturing, image analysis, design editing, or is a general query. Uses the fast text model.
+1. **Router Agent (Supervisor)**: Determines if the request requires URL capturing, direct image analysis, design editing, or is a general query. If a picture/mockup has been uploaded, it automatically skips website capture and routes straight to the critique node. Uses the fast text model.
 2. **Info Agent**: Handles general Q&A about UI/UX design. Uses the text model.
-3. **Capture Website Node**: Uses Playwright to screenshot provided URLs. Handles preloader detection and scroll-driven animations. URL extraction uses regex.
+3. **Capture Website Node**: Uses Playwright to screenshot provided URLs, and automatically runs them through the image optimizer. Handles preloader detection and scroll-driven animations.
 4. **Analysis Pipeline (Sequential Subgraph)**:
    - **UI Critic**: Analyzes design layout, hierarchy, and UX. Uses the **vision model** (the only node that requires it). Screenshots are automatically downscaled before analysis.
    - **Design Strategist**: Creates a detailed, actionable improvement plan with structured output. Uses the text model.
@@ -147,7 +150,8 @@ ui_analyser/
     │   ├── web_capture.py          # Playwright screenshot tool (preloader & scroll handling)
     │   └── image_generation.py     # Image generation (Gemini native + LiteLLM fallback)
     ├── utils/
-    │   └── system_checks.py        # Ollama detection & model listing
+    │   ├── system_checks.py        # Ollama detection & model listing
+    │   └── image_optimizer.py      # Resizes, handles transparency, and compresses images (JPEG)
     └── workflows/
         └── graph.py                # LangGraph workflow definition & edges
 ```
@@ -184,3 +188,11 @@ The Streamlit sidebar provides runtime model configuration:
 - **Workflows**: Modify `src/workflows/graph.py` to add new agents or change the routing logic.
 - **Models**: Update `src/config/settings.py` to add new model providers or change defaults.
 - **Tools**: Add new tools in `src/tools/` and wire them into node functions in `src/agents/nodes.py`.
+
+## License
+
+This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
+
+## Author
+
+Created and maintained by [gedeoni](https://github.com/gedeoni).

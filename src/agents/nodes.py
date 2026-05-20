@@ -250,9 +250,16 @@ async def ui_critic_node(state: GraphState) -> Dict[str, Any]:
         )
 
     try:
-        logger.info("Calling vision LLM for critique …")
+        last_message = _get_last_user_message(state)
+        base_prompt = "Analyze this landing page design."
+        if last_message and not last_message.startswith(("http://", "https://", "Analyze this uploaded image:")):
+            prompt = f"{base_prompt} Focus especially on the user's specific request/question: \"{last_message}\""
+        else:
+            prompt = base_prompt
+
+        logger.info("Calling vision LLM for critique with prompt: %s", prompt)
         result = call_llm(
-            prompt="Analyze this landing page design.",
+            prompt=prompt,
             system_prompt=UI_CRITIC_PROMPT,
             image_path=image_path,
             response_format=AnalysisResult,
@@ -287,9 +294,16 @@ async def design_strategist_node(state: GraphState) -> Dict[str, Any]:
         return {"current_error": "No analysis report available."}
 
     try:
-        logger.info("Generating design strategy plan …")
+        last_message = _get_last_user_message(state)
+        base_prompt = "Create a design improvement plan."
+        if last_message and not last_message.startswith(("http://", "https://", "Analyze this uploaded image:")):
+            prompt = f"{base_prompt} Focus the strategy especially on addressing: \"{last_message}\""
+        else:
+            prompt = base_prompt
+
+        logger.info("Generating design strategy plan with prompt: %s", prompt)
         result = call_llm(
-            prompt="Create a design improvement plan.",
+            prompt=prompt,
             system_prompt=DESIGN_STRATEGIST_PROMPT.format(
                 analysis_report=report,
             ),
@@ -350,9 +364,16 @@ async def visual_implementer_node(state: GraphState) -> Dict[str, Any]:
         return {"current_error": "Missing analysis or design plan."}
 
     try:
-        logger.info("Synthesising image-generation prompt …")
+        last_message = _get_last_user_message(state)
+        base_prompt = "Generate the detailed image prompt."
+        if last_message and not last_message.startswith(("http://", "https://", "Analyze this uploaded image:")):
+            prompt = f"{base_prompt} Ensure style adjustments incorporate: \"{last_message}\""
+        else:
+            prompt = base_prompt
+
+        logger.info("Synthesising image-generation prompt with prompt: %s", prompt)
         image_gen_prompt = call_llm(
-            prompt="Generate the detailed image prompt.",
+            prompt=prompt,
             system_prompt=VISUAL_IMPLEMENTER_PROMPT.format(
                 analysis_report=report, design_plan=plan,
             ),
@@ -416,9 +437,10 @@ async def design_editor_node(state: GraphState) -> Dict[str, Any]:
         }
 
     try:
-        logger.info("Generating edit prompt …")
+        prompt = f"Generate the edit prompt for the image generation model to satisfy the request: \"{last_message}\""
+        logger.info("Generating edit prompt with prompt: %s", prompt)
         edit_prompt = call_llm(
-            prompt="Generate the edit prompt for the image generation model.",
+            prompt=prompt,
             system_prompt=DESIGN_EDITOR_PROMPT.format(
                 user_request=last_message,
             ),
