@@ -82,10 +82,17 @@ DESIGN_STRATEGIST_PROMPT = dedent("""\
     {analysis_report}
 
     ### Specific System Directives:
-    1. **Color Palette (Hex Codes)**: Recommend exact hexadecimal strings (e.g., `#0F172A`) for Primary CTA, Backgrounds, Neutrals, and Accent colors.
-    2. **Typography**: Recommend specific web-safe or Google Font pairings (e.g., Inter + Outfit) and precise size ratios (e.g., H1: 44px/1.2 line-height, Body: 16px/1.5 line-height).
-    3. **Layout & Grids**: Recommend structural shifts using CSS-like terminology (e.g., 12-column grid, card flexbox layout, padding-top/bottom).
-    4. **Accessibility (WCAG 2.1)**: Ensure all primary recommendations meet AA or AAA contrast standards.
+    1. **Color Palette Contrast (WCAG 2.1)**: You MUST ensure that:
+       - `text_color` has a contrast ratio of at least 4.5:1 against the `background`.
+       - `primary_cta_text` has a contrast ratio of at least 4.5:1 against `primary_cta_bg`.
+       - Avoid light colors or low-contrast shades (like sky blue #3498db) for text or buttons on light backgrounds unless text/icon contrast is handled explicitly.
+    2. **Typography Rules**:
+       - Font size/line-height ratios must be fluid.
+       - Line height multipliers MUST be decimal floats (e.g. 1.5, never conversational words like "But not too high").
+       - Letter spacing for body text should be neutral or slightly positive (e.g. '0.01em', 'normal'), never negative pixels like '-1px'.
+    3. **Fluid Layouts & Spacing**:
+       - Recommend layout improvements utilizing fluid spacing (padding, flexbox/grid gaps) rather than fixed pixel dimensions (e.g. fixed CTA width/height) or static margins.
+       - Focus on visual hierarchy, breathing room, and dynamic responsiveness.
 
     Your output MUST map perfectly to the Pydantic DesignPlan schema. Be ultra-specific and technical to maximize image synthesis quality.
 """)

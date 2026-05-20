@@ -75,19 +75,59 @@ class AnalysisResult(BaseModel):
     )
 
 
+class TypographySpec(BaseModel):
+    """Explicit typography specification."""
+
+    font_family: str = Field(
+        description="Selected Google or web-safe font pairing, e.g., 'Inter'",
+    )
+    base_font_size: str = Field(
+        description="Body text size with unit, e.g., '16px'",
+    )
+    line_height_ratio: float = Field(
+        description=(
+            "Line height decimal multiplier. MUST be between 1.4 "
+            "and 1.6 for body copy readability (e.g., 1.5)"
+        ),
+    )
+    letter_spacing: str = Field(
+        description=(
+            "Letter spacing with unit. MUST be positive or 'normal' "
+            "for body text (e.g., '0.01em', 'normal')"
+        ),
+    )
+
+
+class ColorPaletteSpec(BaseModel):
+    """Strict, accessible color palette specifications."""
+
+    primary_cta_bg: str = Field(
+        description="Hex code for primary CTA button background",
+    )
+    primary_cta_text: str = Field(
+        description="Hex code for CTA button text (must pass 4.5:1 contrast against primary_cta_bg)",
+    )
+    background: str = Field(
+        description="Hex code for the primary page background",
+    )
+    text_color: str = Field(
+        description="Hex code for body text (must pass 4.5:1 contrast against background)",
+    )
+    accent: str = Field(
+        description="Hex code for visual highlights or subtle secondary accents",
+    )
+
+
 class DesignPlan(BaseModel):
     """Structured output for the Design Strategist."""
 
     strategy_overview: str
     layout_improvements: List[str]
-    color_palette: Dict[str, str] = Field(
-        description=(
-            "Mapping of role (primary, secondary, etc.) "
-            "to hex codes"
-        ),
+    color_palette: ColorPaletteSpec = Field(
+        description="Strict, accessible color palette specifications",
     )
-    typography: Dict[str, str] = Field(
-        description="Font choices and sizes",
+    typography: TypographySpec = Field(
+        description="Strict typographical specs",
     )
     cta_optimization: List[str]
     accessibility_enhancements: List[str]

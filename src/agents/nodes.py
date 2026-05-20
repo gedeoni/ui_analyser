@@ -104,11 +104,18 @@ def _format_analysis_report(result: AnalysisResult) -> str:
 
 def _format_design_plan(result: DesignPlan) -> str:
     """Render a ``DesignPlan`` into a human-readable text plan."""
-    colors = "\n".join(
-        f"- {k}: {v}" for k, v in result.color_palette.items()
+    colors = (
+        f"- Primary CTA Background: {result.color_palette.primary_cta_bg}\n"
+        f"- Primary CTA Text: {result.color_palette.primary_cta_text}\n"
+        f"- Page Background: {result.color_palette.background}\n"
+        f"- Main Text Color: {result.color_palette.text_color}\n"
+        f"- Accent Color: {result.color_palette.accent}"
     )
-    typo = "\n".join(
-        f"- {k}: {v}" for k, v in result.typography.items()
+    typo = (
+        f"- Font Family: {result.typography.font_family}\n"
+        f"- Base Font Size: {result.typography.base_font_size}\n"
+        f"- Line Height Ratio: {result.typography.line_height_ratio}\n"
+        f"- Letter Spacing: {result.typography.letter_spacing}"
     )
     layout = "\n".join(f"- {i}" for i in result.layout_improvements)
     cta = "\n".join(f"- {i}" for i in result.cta_optimization)
