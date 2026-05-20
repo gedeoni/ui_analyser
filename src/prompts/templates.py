@@ -30,13 +30,13 @@ ROUTER_PROMPT = dedent("""\
 
     ROUTING LOGIC:
 
-    1. **If the user provides a website URL**:
+    1. **If the user provides a website URL** (and has not uploaded a picture directly):
        → Route to "capture_website".
        → Examples: "analyze https://example.com", "check out my site at google.com"
 
-    2. **If the user wants to analyze a previously captured image**:
+    2. **If the user has uploaded an image/picture directly, or wants to analyze a previously captured/uploaded image**:
        → Route to "analysis_pipeline".
-       → Examples: "give me feedback", "what about this image"
+       → Examples: "analyze this picture", "give me feedback on my image", "what do you think of my design mockup?", "analyze this uploaded image"
 
     3. **For editing EXISTING generated designs**:
        → Route to "design_editor".

@@ -176,12 +176,18 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### How it works")
-    st.markdown("1. Provide a website URL.")
+    st.markdown("1. Provide a website URL or upload a mockup image.")
     st.markdown(
         "2. Our AI agents will analyze the layout, typography, and UX.",
     )
     st.markdown("3. A design strategist will create an improvement plan.")
     st.markdown("4. A visual implementer will generate a new design.")
+
+    st.markdown("---")
+    if st.button("🗑️ Reset Conversation", use_container_width=True):
+        st.session_state.messages = []
+        st.session_state.thread_id = str(uuid.uuid4())
+        st.rerun()
 
 
 # ── Chat interface ──────────────────────────────────────────────────
@@ -216,7 +222,8 @@ def extract_url(text: str) -> str | None:
 
 # ── Agent runner ────────────────────────────────────────────────────
 
-user_input = st.chat_input("Provide a website URL to analyse")
+user_input = None
+initial_image_path = None
 
 
 async def run_agent(
@@ -269,6 +276,52 @@ def _render_generated_image(state: dict) -> None:
 
 # ── Main execution ──────────────────────────────────────────────────
 
+if not st.session_state.messages:
+    # Onboarding banner & tabs
+
+    tab_url, tab_img = st.tabs(["🌐 Analyze Website URL", "🖼️ Analyze Uploaded Image"])
+
+    with tab_url:
+        url_val = st.text_input(
+            "Enter website URL",
+            placeholder="https://example.com",
+            key="input_url_field",
+        )
+        if st.button("🚀 Analyze Website", key="btn_url_submit", type="primary"):
+            if not url_val:
+                st.error("Please enter a valid website URL.")
+            else:
+                user_input = url_val
+
+    with tab_img:
+        uploaded_file = st.file_uploader(
+            "Upload landing page image",
+            type=["png", "jpg", "jpeg"],
+            key="input_img_field",
+        )
+        if st.button("🚀 Analyze Image", key="btn_img_submit", type="primary"):
+            if not uploaded_file:
+                st.error("Please upload an image first.")
+            else:
+                # Save the image to the artifacts folder
+                os.makedirs("artifacts", exist_ok=True)
+                saved_path = os.path.join(
+                    "artifacts",
+                    f"uploaded_{uuid.uuid4().hex}_{uploaded_file.name}",
+                )
+                with open(saved_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+
+                # Minimize the image immediately!
+                from src.utils.image_optimizer import minimize_image
+                saved_path = minimize_image(saved_path)
+
+                # Set initial image path and user_input
+                initial_image_path = saved_path
+                user_input = f"Analyze this uploaded image: {uploaded_file.name}"
+else:
+    user_input = st.chat_input("Ask for edits or discuss the design...")
+
 if user_input:
     has_api_key = any((
         os.getenv("GEMINI_API_KEY"),
@@ -279,13 +332,22 @@ if user_input:
     if settings.USE_CLOUD and not has_api_key:
         st.error("Please provide an API key in the sidebar.")
     else:
-        initial_state: dict = {"messages": []}
+        # Pre-populate current_image_path if initial_image_path is set
+        initial_state: dict = {
+            "messages": [],
+            "current_image_path": initial_image_path,
+        }
 
         st.session_state.messages.append(
             {"role": "user", "content": user_input},
         )
         with st.chat_message("user"):
             st.write(user_input)
+            if initial_image_path:
+                st.image(initial_image_path, caption="Uploaded Image")
+                # Also save the uploaded image representation in st.session_state.messages so it persists in chat history!
+                st.session_state.messages[-1]["image"] = initial_image_path
+
         initial_state["messages"].append(
             {"role": "user", "content": user_input},
         )

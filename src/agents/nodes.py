@@ -21,6 +21,7 @@ from src.prompts.templates import (
 from src.state.schema import AnalysisResult, DesignPlan, GraphState
 from src.tools.image_generation import generate_improved_landing_page
 from src.tools.web_capture import capture_website_screenshot
+from src.utils.image_optimizer import minimize_image
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +144,7 @@ async def route_request(state: GraphState) -> Dict[str, Any]:
         prompt += f"Context: User provided URL {state['target_url']}\n"
         logger.info("Router context URL: %s", state["target_url"])
     if state.get("current_image_path"):
+        prompt += f"Context: User uploaded/provided image path: {state['current_image_path']}\n"
         logger.info("Router context image: %s", state["current_image_path"])
 
     decision = call_llm(prompt=prompt, system_prompt=ROUTER_PROMPT)
@@ -208,7 +210,9 @@ async def capture_website_node(state: GraphState) -> Dict[str, Any]:
     try:
         logger.info("Capturing screenshot of %s …", url)
         filepath = await capture_website_screenshot(url)
-        logger.info("Screenshot saved: %s", filepath)
+        logger.info("Screenshot saved: %s. Minimizing size...", filepath)
+        filepath = minimize_image(filepath)
+        logger.info("Minimized screenshot saved to: %s", filepath)
         logger.info(_SECTION_SEP)
         return {
             "target_url": url,
