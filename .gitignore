@@ -7,5 +7,10 @@ wheels/
 *.egg-info
 artifacts/
 
+
 # Virtual environments
 .venv
+
+# SQLite databases
+*.sqlite
+

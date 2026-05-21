@@ -115,8 +115,7 @@ GEMINI_API_KEY="your_gemini_api_key_here"
 *using uv*
 -------------
 uv sync 
-source .venv/bin/activate 
-streamlit run app.py
+uv run streamlit run app.py
 
 *using venv*
 -------------
